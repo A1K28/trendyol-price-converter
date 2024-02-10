@@ -4,7 +4,17 @@
   "description": "Convert Trendyol prices from Lira to GEL",
   "version": "1.0",
   "action": {
-    "default_popup": "hello.html",
+    "default_popup": "trendyol.html",
     "default_icon": "trendyol.png"
-  }
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/convert.js"],
+      "matches": [
+        "http://www.trendyol.com/*",
+        "https://www.trendyol.com/*"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }
