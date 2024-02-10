@@ -1,9 +1,33 @@
-console.log("Thank you for using Trendyol Currency Converter! Enjoy")
+log("Thank you for using Trendyol Currency Converter! Enjoy");
 
-const liraToGel = 0.086
+const liraToGel = getRate();
+const regex = new RegExp('\\d+\\.\\d+');
+const regexAlt = new RegExp('\\d+\\,\\d+');
+
+function main() {
+    log("Window Loaded");
+    setTimeout(function() {document.documentElement.style.display = '';}, 10000);
+    let priceDocument = document.evaluate("//div[contains(@class, 'product-price-container')]//font[contains(text(), ' TL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    const priceText = priceDocument.textContent;
+    log("Price Text " + priceText);
+    let priceTy = regex.exec(priceText);
+    if (!priceTy) {
+        regexAlt.exec(priceText);
+    }
+    const priceGel = (Number(priceTy) * liraToGel).toFixed(2);
+    priceDocument.textContent = priceText + ' (' + priceGel + ' GEL)';
+}
 
 window.addEventListener('load', function(){
-    console.log("Window Loaded")
-    const priceText = document.evaluate("/html/body/div[1]/div[5]/main/div/div[2]/div/div[2]/div[2]/div/div[1]/div[2]/div/div/div[3]/div/div/span/font/font", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent;
-    console.log("Price Text " + priceText).textContent
+    setTimeout(main, 1500);
 });
+
+function log(message) {
+    console.log("[Trendyol Converter] " + message);
+}
+
+// TODO: make this dynamic.
+// send HTTP GET request to get the current exchange rate between TY & GEL
+function getRate() {
+    return 0.086;
+}
