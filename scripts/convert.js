@@ -2,7 +2,7 @@ log("Thank you for using Trendyol Currency Converter! Enjoy");
 
 const liraToGel = getRate();
 const regex = new RegExp('\\d+\\.\\d+');
-const regexAlt = new RegExp('\\d+\\,\\d+');
+const regexAlt = new RegExp('\\d+');
 
 function main() {
     log("Window Loaded");
@@ -11,8 +11,8 @@ function main() {
     const priceText = priceDocument.textContent;
     log("Price Text " + priceText);
     let priceTy = regex.exec(priceText);
-    if (!priceTy) {
-        regexAlt.exec(priceText);
+    if (priceTy == null) {
+        priceTy = regexAlt.exec(priceText);
     }
     const priceGel = (Number(priceTy) * liraToGel).toFixed(2);
     priceDocument.textContent = priceText + ' (' + priceGel + ' GEL)';
