@@ -7,24 +7,6 @@ const regexAlt = new RegExp('\\d+\\s*TL');
 const conversionUrl = "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/try/gel.json";
 var updateInProgress = false;
 
-function update(rate) {
-    // log("Window Loaded");
-    // processNodes(rate);
-    // let priceDocument = document.evaluate("//div[contains(@class, 'product-price-container')]//font[contains(text(), ' TL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    // const priceText = priceDocument.textContent;
-    // log("Price Text " + priceText);
-    // let priceTy = regex.exec(priceText);
-    // if (priceTy == null) {
-    //     priceTy = regexAlt.exec(priceText);
-    // }
-    // const priceGel = (Number(priceTy) * rate).toFixed(2);
-    // priceDocument.textContent = priceText + ' (' + priceGel + ' GEL)';
-}
-
-// window.addEventListener('load', function(){
-//     setTimeout(fetchRate, 1500);
-// });
-
 function log(message) {
     console.log("[Trendyol Converter] " + message);
 }
@@ -45,7 +27,6 @@ function httpGet(url) {
 function cacheRate(callback) {
     let value = getRate();
     chrome.storage.local.set({ rate : value, savedAt: Date.now() }).then(() => {
-        log("Saving value: " + value + " in cache");
         return callback(value);
     });
 }
@@ -54,7 +35,6 @@ function fetchRate() {
     let callback = processNodes;
     chrome.storage.local.get(['rate', 'savedAt'], function(items) {
         if (items.rate && items.savedAt && items.savedAt > Date.now() - maxCacheTimeInMillis) {
-            log('Retrieving a cached rate: ' + items.rate);
             return callback(items.rate);
         } else {
             return cacheRate(callback);
@@ -76,7 +56,6 @@ function processNodes(rate) {
     walkDOM(document.body,function(n){
             if (n.nodeType === 3) {
                 if (n.textContent && n.textContent === 'TL' && n.parentNode && n.parentNode.parentNode && n.parentNode.parentNode.parentNode) {
-                    log(n.parentNode.textContent);
                     replacePrice(n.parentNode.parentNode.parentNode, rate);
                 } else {
                     replacePrice(n, rate);
