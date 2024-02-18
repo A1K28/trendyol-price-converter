@@ -3,6 +3,9 @@
   "name": "Trendyol Price Converter",
   "description": "Convert Trendyol prices from Lira to GEL",
   "version": "1.0",
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_popup": "trendyol.html",
     "default_icon": "trendyol.png"
