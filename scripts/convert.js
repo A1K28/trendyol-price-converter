@@ -1,70 +1,104 @@
 log("Thank you for using Trendyol Currency Converter! Enjoy");
 
 const maxCacheTimeInMillis = 6*3600*1000; // 6 hours
-const regex = new RegExp('\\d+\\.\\d+');
-const regexAlt = new RegExp('\\d+');
+const regex = new RegExp('\\d+\\.\\d+ TL');
+const regexAlt = new RegExp('\\d+ TL');
 const conversionUrl = "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/try/gel.json";
+var updateInProgress = false;
 
-function main() {
-    log("Window Loaded");
-
-    cacheRate(getRate());
-    fetchRate()
-    // getCachedObject('rate');
-
-    setTimeout(function() {document.documentElement.style.display = '';}, 10000);
-    let priceDocument = document.evaluate("//div[contains(@class, 'product-price-container')]//font[contains(text(), ' TL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    const priceText = priceDocument.textContent;
-    log("Price Text " + priceText);
-    let priceTy = regex.exec(priceText);
-    if (priceTy == null) {
-        priceTy = regexAlt.exec(priceText);
-    }
-    const priceGel = (Number(priceTy) * getRate()).toFixed(2);
-    priceDocument.textContent = priceText + ' (' + priceGel + ' GEL)';
+function update(rate) {
+    // log("Window Loaded");
+    // processNodes(rate);
+    // let priceDocument = document.evaluate("//div[contains(@class, 'product-price-container')]//font[contains(text(), ' TL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    // const priceText = priceDocument.textContent;
+    // log("Price Text " + priceText);
+    // let priceTy = regex.exec(priceText);
+    // if (priceTy == null) {
+    //     priceTy = regexAlt.exec(priceText);
+    // }
+    // const priceGel = (Number(priceTy) * rate).toFixed(2);
+    // priceDocument.textContent = priceText + ' (' + priceGel + ' GEL)';
 }
 
-window.addEventListener('load', function(){
-    setTimeout(main, 1500);
-});
+// window.addEventListener('load', function(){
+//     setTimeout(fetchRate, 1500);
+// });
 
 function log(message) {
     console.log("[Trendyol Converter] " + message);
 }
 
-// TODO: make this dynamic.
-// send HTTP GET request to get the current exchange rate between TY & GEL
 function getRate() {
-    return 0.085;
-    // let response = httpGet(conversionUrl);
-    // return response['gel'];
+    let response = httpGet(conversionUrl);
+    return response['gel'];
 }
 
-function httpGet(theUrl) {
+function httpGet(url) {
+    log("Sending GET request to: " + url)
     let xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+    xmlHttp.open( "GET", url, false ); // false for synchronous request
     xmlHttp.send( null );
     return JSON.parse(xmlHttp.responseText);
 }
 
-function cacheRate() {
+function cacheRate(callback) {
     let value = getRate();
     chrome.storage.local.set({ rate : value, savedAt: Date.now() }).then(() => {
         log("Saving value: " + value + " in cache");
-        return value;
+        return callback(value);
     });
 }
 
 function fetchRate() {
+    let callback = processNodes;
     chrome.storage.local.get(['rate', 'savedAt'], function(items) {
-        log(items.rate)
-        log(items.savedAt)
-        if (items.rate && items.savedAt) {
-            if (items.savedAt > Date.now() - maxCacheTimeInMillis) {
-                log(items.rate);
-                return items.rate; // Serialization is auto, so nested objects are no problem
-            }
+        if (items.rate && items.savedAt && items.savedAt > Date.now() - maxCacheTimeInMillis) {
+            log('Retrieving a cached rate: ' + items.rate);
+            return callback(items.rate);
+        } else {
+            return cacheRate(callback);
         }
-        return cacheRate();
     });
 }
+
+function walkDOM(node,callback) {
+    if (node.nodeName != 'SCRIPT') { // ignore javascript
+        callback(node);
+        for (var i=0; i<node.childNodes.length; i++) {
+            walkDOM(node.childNodes[i], callback);
+        }
+    }
+}
+
+function processNodes(rate) {
+    updateInProgress = true;
+    walkDOM(document.body,function(n){
+            if (n.nodeType === 3) {
+                log(n.textContent);
+                if (n.textContent && !n.textContent.includes(" GEL)") && (regex.test(n.textContent) || regexAlt.test(n.textContent))) {
+                    let ext;
+                    if (regex.test(n.textContent)) {
+                        ext = regex.exec(n.textContent);
+                    } else if (regexAlt.test(n.textContent)) {
+                        ext = regexAlt.exec(n.textContent);
+                    }
+                    for (let i = 0; i < ext.length; i++) {
+                        const priceGel = (Number(ext[i].replace(" TL", "")) * rate).toFixed(2);
+                        console.log(ext[i] + " " + ext[i].replace(" TL", "") + " " + priceGel)
+                        n.textContent = n.textContent.replace(ext[i], ext[i] + ' (' + priceGel + ' GEL)');
+                    }
+                }
+            }
+        });
+    updateInProgress = false;
+}
+
+var timeout = null;
+document.addEventListener("DOMSubtreeModified", function() {
+    if (!updateInProgress) {
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+        timeout = setTimeout(fetchRate, 500);
+    }
+}, false);
