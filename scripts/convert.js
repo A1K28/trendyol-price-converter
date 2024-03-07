@@ -1,10 +1,8 @@
 log("Thank you for using Trendyol Currency Converter! Enjoy");
 
 const maxCacheTimeInMillis = 6*3600*1000; // 6 hours
-const regex = new RegExp('\\d+\\.\\d+,\\d+\\s*TL');
-const regex2 = new RegExp('\\d+\\.\\d+\\s*TL');
-const regexAlt = new RegExp('\\d+\\s*TL');
-const conversionUrl = "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/try/gel.json";
+const regex = new RegExp("(\\d+(\\.|\\,))?\\d+((\\.|\\,)\\d\\d)?\\s*TL");
+const conversionUrl = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/try.json"
 var updateInProgress = false;
 
 function log(message) {
@@ -13,7 +11,7 @@ function log(message) {
 
 function getRate() {
     let response = httpGet(conversionUrl);
-    return response['gel'];
+    return response['try']['gel'];
 }
 
 function httpGet(url) {
@@ -67,24 +65,23 @@ function processNodes(rate) {
 
 function replacePrice(n, rate) {
     if (n.textContent && !n.textContent.includes(" GEL)")) {
-        let ext;
-        if (regex.test(n.textContent)) {
-            ext = regex.exec(n.textContent);
-        } else if (regex2.test(n.textContent)) {
-            ext = regex2.exec(n.textContent);
-        } else if (regexAlt.test(n.textContent)) {
-            ext = regexAlt.exec(n.textContent);
-        } else {
-            return;
-        }
-        for (let i = 0; i < ext.length; i++) {
+        let text = n.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        if (!regex.test(text)) return;
+        let ext = regex.exec(text);
+        while (ext) {
+            text = text.replace(ext[0], "");
+            let i = 0;
+            if (!ext[i] || ext[i].length < 3) break;
             let v = ext[i].replace("TL", "").trim();
-            if (v.includes(",")) {
-                v = v.replaceAll(".","").replace(",", ".");
-            }
+            if (!(v[v.length-3] === ',' || v[v.length-3] === '.')) v += "00";
+            v = v.replaceAll(".","").replaceAll(",", "");
+            v = v.substring(0, v.length-2) + "." + v.substring(v.length-2);
             const priceGel = (Number(v) * rate).toFixed(2);
-            n.textContent = n.textContent.replace(ext[i], ext[i] + ' (' + priceGel + ' GEL)');
-        }
+            // log("match: " + ext + " v: " + v + " priceGel: " + priceGel);
+            n.textContent = n.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim().replace(ext[i], ext[i] + ' (' + priceGel + ' GEL)');
+            if (text.length < 3) break;
+            ext = regex.exec(text);
+        };
     }
 }
 
