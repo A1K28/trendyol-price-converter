@@ -65,7 +65,7 @@ function processNodes(rate) {
 
 function replacePrice(n, rate) {
     if (n.textContent && !n.textContent.includes(" GEL)")) {
-        let text = n.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        let text = n.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim(); // replace html entities
         if (!regex.test(text)) return;
         let ext = regex.exec(text);
         while (ext) {
